@@ -54,3 +54,4 @@ inside your CRA project
 
 ###### Marcell Monteiro Cruz - 2018
 # 
+# figma2css
