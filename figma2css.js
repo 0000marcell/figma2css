@@ -221,28 +221,43 @@ function appendCSS(item, css) {
     });
     css += `\tcolor: ${formatColor(item.fills[0].color)}\n`
     css += '}\n\n';
+  } else {
+
   }
   return css;
 }
 
 program
   .version('0.1.3')
-  .description('Generates react components from figmas designs');
+  .description('Generates css styles from figmas designs');
+
+program
+  .command('rm <dir>')
+  .option('-r, --recursive', 'Remove recursively')
+  .action(function (dir, cmd) {
+    console.log('remove ' + dir + (cmd.recursive ? ' recursively' : ''))
+  })
+
 
 program
   .command('generate')
   .alias('g')
   .description('generate css file')
-  .option("-f, --file [name]", "file name")
-  .action(async () => {
+  .option('-f, --file <file>', 'file name')
+  .option('-t, --type <type>', 'type of object to search')
+  .option('-n, --name <name>', 'name of the object to search')
+  .option('-o, --output', 'log project data output to stdout')
+  .action(async function (cmd) {
     let data = await fetchProject();
-    let result = findObject(data.document, 'FRAME', 'Home');
+    if(cmd.output) 
+      console.log(data.document);
+    let result = findObject(data.document, cmd['type'], cmd['name']);
     let css = '';
+    console.log('result: ', result);
     result['children'].forEach((item) => {
       css += appendCSS(item, css);   
     });
-    let stream = fs.createWriteStream("./styles.css");
-    fs.writeFile("./styles.css", css, function(err) {
+    fs.writeFile(cmd['file'] || "./styles.css", css, function(err) {
       if(err) 
         console.log(err);
       console.log("The file was saved!");
