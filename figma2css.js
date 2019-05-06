@@ -12,134 +12,12 @@ const fs = require('fs');
 
 const baseUrl = 'https://api.figma.com';
 
-const vectorMap = {};
-const vectorList = [];
-const vectorTypes = ['VECTOR', 'LINE', 'REGULAR_POLYGON', 'ELLIPSE', 'STAR'];
-
-function preprocessTree(node) {
-  let vectorsOnly = node.name.charAt(0) !== '#';
-  let vectorVConstraint = null;
-  let vectorHConstraint = null;
-
-  function paintsRequireRender(paints) {
-    if (!paints) return false;
-
-    let numPaints = 0;
-    for (const paint of paints) {
-      if (paint.visible === false) continue;
-
-      numPaints++;
-      if (paint.type === 'EMOJI') return true;
-    }
-
-    return numPaints > 1;
-  }
-
-  if (paintsRequireRender(node.fills) ||
-      paintsRequireRender(node.strokes) ||
-      (node.blendMode != null && ['PASS_THROUGH', 'NORMAL'].indexOf(node.blendMode) < 0)) {
-    node.type = 'VECTOR';
-  }
-
-  const children = node.children && node.children.filter((child) => child.visible !== false);
-  if (children) {
-    for (let j=0; j<children.length; j++) {
-      if (vectorTypes.indexOf(children[j].type) < 0) vectorsOnly = false;
-      else {
-        if (vectorVConstraint != null && children[j].constraints.vertical != vectorVConstraint) vectorsOnly = false;
-        if (vectorHConstraint != null && children[j].constraints.horizontal != vectorHConstraint) vectorsOnly = false;
-        vectorVConstraint = children[j].constraints.vertical;
-        vectorHConstraint = children[j].constraints.horizontal;
-      }
-    }
-  }
-  node.children = children;
-
-  if (children && children.length > 0 && vectorsOnly) {
-    node.type = 'VECTOR';
-    node.constraints = {
-      vertical: vectorVConstraint,
-      horizontal: vectorHConstraint,
-    };
-  }
-
-  if (vectorTypes.indexOf(node.type) >= 0) {
-    node.type = 'VECTOR';
-    vectorMap[node.id] = node;
-    vectorList.push(node.id);
-    node.children = [];
-  }
-
-  if (node.children) {
-    for (const child of node.children) {
-      preprocessTree(child);
-    }
-  }
-}
-
-async function generateComponents(data) {
-  const doc = data.document;
-  const canvas = doc.children[0];
-  const config = data.config;
-  const headers = data.headers;
-
-  let html = '';
-
-  for (let i=0; i<canvas.children.length; i++) {
-    const child = canvas.children[i]
-    if (child.name.charAt(0) === '#'  && child.visible !== false) {
-      const child = canvas.children[i];
-      preprocessTree(child);
-    }
-  }
-
-  let guids = vectorList.join(',');
-  data = await fetch(`${baseUrl}/v1/images/${config.projectId}?ids=${guids}&format=svg`, {headers});
-  const imageJSON = await data.json();
-
-  const images = imageJSON.images || {};
-  if (images) {
-    let promises = [];
-    let guids = [];
-    for (const guid in images) {
-      if (images[guid] == null) continue;
-      guids.push(guid);
-      promises.push(fetch(images[guid]));
-    }
-
-    let responses = await Promise.all(promises);
-    promises = [];
-    for (const resp of responses) {
-      promises.push(resp.text());
-    }
-
-    responses = await Promise.all(promises);
-    for (let i=0; i<responses.length; i++) {
-      images[guids[i]] = responses[i].replace('<svg ', '<svg preserveAspectRatio="none" ');
-    }
-  }
-
-  const componentMap = {};
-  
-  for (let i=0; i<canvas.children.length; i++) {
-    const child = canvas.children[i]
-    if (child.name.charAt(0) === '#' && child.visible !== false) {
-      const child = canvas.children[i];
-      figma.createComponent(child, images, componentMap);
-    }
-  }
-
-  for (const key in componentMap) {
-    let component = componentMap[key];
-    let contents = "import React, { Component} from 'react'\n";
-    contents+="\n";
-    contents += component.doc + "\n";
-    const path = `./src/components/${component.name}.js`;
-    fs.writeFile(path, contents, function(err) {
-      if (err) console.log(err);
-      console.log(`wrote ${path}`);
-    });
-  }
+const validProperties = {
+  'fontFamily': 'font-family',
+  'fontWeight': 'font-weight',
+  'fontSize': 'font-size',
+  'letterSpacing': 'letter-spacing',
+  'lineHeightPx': 'letter-height'
 }
 
 async function fetchProject() {
@@ -180,13 +58,7 @@ function findObject(data, type, name) {
   }
 }
 
-let validProperties = {
-  'fontFamily': 'font-family',
-  'fontWeight': 'font-weight',
-  'fontSize': 'font-size',
-  'letterSpacing': 'letter-spacing',
-  'lineHeightPx': 'letter-height'
-}
+
 
 /**
 * format color from {r: 0, g: 0, b: 0} 
@@ -205,6 +77,8 @@ function formatColor(ocolor) {
   return result;
 }
 
+let iterator = 0;
+
 /**
 * append to css variable based 
 * on the type of nome, creating the class 
@@ -212,6 +86,7 @@ function formatColor(ocolor) {
 */
 function appendCSS(item, css) {
   if(item.type === 'TEXT') {
+    iterator += 1;
     css += `.${item.name} {\n`;
     Object.keys(item.style).forEach((key) => {
       if(validProperties[key]) {
@@ -219,10 +94,13 @@ function appendCSS(item, css) {
         css += `\t${propName}: ${item.style[key]};\n`;
       }
     });
-    css += `\tcolor: ${formatColor(item.fills[0].color)}\n`
     css += '}\n\n';
   } else {
-
+    if(item.children) {
+      item.children.forEach((subitem) => {
+        css = appendCSS(subitem, css); 
+      });
+    }
   }
   return css;
 }
@@ -232,14 +110,6 @@ program
   .description('Generates css styles from figmas designs');
 
 program
-  .command('rm <dir>')
-  .option('-r, --recursive', 'Remove recursively')
-  .action(function (dir, cmd) {
-    console.log('remove ' + dir + (cmd.recursive ? ' recursively' : ''))
-  })
-
-
-program
   .command('generate')
   .alias('g')
   .description('generate css file')
@@ -247,21 +117,26 @@ program
   .option('-t, --type <type>', 'type of object to search')
   .option('-n, --name <name>', 'name of the object to search')
   .option('-o, --output', 'log project data output to stdout')
-  .action(async function (cmd) {
-    let data = await fetchProject();
-    if(cmd.output) 
-      console.log(data.document);
-    let result = findObject(data.document, cmd['type'], cmd['name']);
-    let css = '';
-    console.log('result: ', result);
-    result['children'].forEach((item) => {
-      css += appendCSS(item, css);   
+  .action(function (cmd) {
+    fetchProject().then((data) => {
+     if(cmd.output) 
+        console.log(data.document);
+      let result = findObject(data.document, cmd['type'], cmd['name']);
+      let css = '';
+      result['children'].forEach((item) => {
+        css = appendCSS(item, css);   
+      });
+
+      console.log(css);
+
+      // fs.writeFile(cmd['file'] || "./styles.css", css, function(err) {
+      //   if(err) 
+      //     console.log(err);
+      //   console.log("The file was saved!");
+      // });  
+    }).catch((e) => {
+      console.log('error: ', e); 
     });
-    fs.writeFile(cmd['file'] || "./styles.css", css, function(err) {
-      if(err) 
-        console.log(err);
-      console.log("The file was saved!");
-    }); 
   });
 
 program
