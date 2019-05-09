@@ -10,6 +10,7 @@
     "url": "git://github.com/0000marcell/figma2css.git"
   },
   "dependencies": {
+    "clui": "^0.3.6",
     "commander": "^2.15.1",
     "node-fetch": "^2.1.2"
   },

@@ -1,23 +1,37 @@
 #!/usr/bin/env node
 
-// Functions 
-// preprocessTree
-// generateComponents
-// fetchProject
 const fetch = require('node-fetch');
 const headers = new fetch.Headers();
 const figma = require('./lib/figma');
 const program = require('commander');
 const fs = require('fs');
+const CLI = require('clui'),
+    Spinner = CLI.Spinner;
 
 const baseUrl = 'https://api.figma.com';
 
 const validProperties = {
-  'fontFamily': 'font-family',
-  'fontWeight': 'font-weight',
-  'fontSize': 'font-size',
-  'letterSpacing': 'letter-spacing',
-  'lineHeightPx': 'letter-height'
+  'fontFamily': { name: 'font-family', unit: '' },
+  'fontWeight': { name: 'font-weight', unit: '' },
+  'fontSize': { name: 'font-size', unit: 'px' },
+  'textCase': { name: 'text-transform', unit: '' }
+}
+
+function readStdin() {
+  let stdin = process.stdin,
+    inputChunks = [];
+  return new Promise(function(resolve){
+    stdin.resume();
+    stdin.setEncoding('utf8');
+
+    stdin.on('data', function (chunk) {
+      inputChunks.push(chunk);
+    });
+
+    stdin.on('end', function () {
+      resolve(inputChunks.join("")); 
+    });  
+  });
 }
 
 async function fetchProject() {
@@ -38,7 +52,15 @@ async function fetchProject() {
 */
 function findObject(data, type, name) {
   let result = null;
+
+  //console.log('parent: ', data.name);
+
+  if(!data.children)
+    return result;
+
   for (var i = 0; i < data['children'].length; i++) {
+    // console.log('type: ', data['children'][i].type);
+    // console.log('name: ', data['children'][i].name);
     if(data['children'][i].type === type && 
       data['children'][i].name === name) {
       result = data['children'][i];
@@ -49,15 +71,16 @@ function findObject(data, type, name) {
     return result;
   } else if(data['children']) {
     for (var i = 0; i < data['children'].length; i++) {
-      result = findObject(data['children'][0], type, name);
-      break;
+      result = findObject(data['children'][i], type, name);
+      //console.log('result: ', result);
+      if(result)
+        break;
     }
     return result;
   } else {
     return null;
   }
 }
-
 
 
 /**
@@ -73,11 +96,11 @@ function formatColor(ocolor) {
         result += ',';
     }
   });
-  result += ');';
+  result += ')';
   return result;
 }
 
-let iterator = 0;
+let classesList = [];
 
 /**
 * append to css variable based 
@@ -86,15 +109,19 @@ let iterator = 0;
 */
 function appendCSS(item, css) {
   if(item.type === 'TEXT') {
-    iterator += 1;
-    css += `.${item.name} {\n`;
-    Object.keys(item.style).forEach((key) => {
-      if(validProperties[key]) {
-        let propName = validProperties[key];
-        css += `\t${propName}: ${item.style[key]};\n`;
-      }
-    });
-    css += '}\n\n';
+    if(item.name.match(/^\./) && 
+      !classesList.find(elem => elem === item.name)){
+      classesList.push(item.name);
+      css += `${item.name} {\n`;
+      Object.keys(item.style).forEach((key) => {
+        if(validProperties[key]) {
+          let prop = validProperties[key];
+          css += `\t${prop.name}: ${item.style[key]}${prop.unit} !important;\n`;
+        }
+      });
+      css += `\tcolor: ${formatColor(item.fills[0].color)} !important;\n`
+      css += '}\n\n';
+    }
   } else {
     if(item.children) {
       item.children.forEach((subitem) => {
@@ -105,9 +132,53 @@ function appendCSS(item, css) {
   return css;
 }
 
+function progressSpinner() {
+  // var countdown = new Spinner('Generating css...  ', 
+  //   ['⣾','⣽','⣻','⢿','⡿','⣟','⣯','⣷']);
+
+  // countdown.start();
+
+  // var number = 10;
+  // setInterval(function () {
+  //   number--;
+  //   countdown.message('Exiting in ' + number + ' seconds...  ');
+  //   if (number === 0) {
+  //     process.stderr.write('\n');
+  //     process.exit(0);
+  //   }
+  // }, 1000);
+}
+
 program
   .version('0.1.3')
   .description('Generates css styles from figmas designs');
+
+program
+  .command('find')
+  .alias('f')
+  .description('find figma object')
+  .option('-t, --type <type>', 'type of object to search')
+  .option('-n, --name <name>', 'name of the object to search')
+  .option('-f, --fetch', 'fetch project before trying to find the item')
+  .action(async (cmd) => {
+    let data = null;
+    if(cmd['fetch']) {
+      data = await fetchProject();
+      data = data.document;
+    } else {
+      data = await readStdin(); 
+      data = JSON.parse(data);
+    }
+    
+    let result = findObject(data, cmd['type'], cmd['name']);
+
+    if(!result) {
+      console.error('Could find the object that you passed: ');
+      return;
+    } 
+
+    console.log(JSON.stringify(result));
+  });
 
 program
   .command('generate')
@@ -119,15 +190,29 @@ program
   .option('-o, --output', 'log project data output to stdout')
   .action(function (cmd) {
     fetchProject().then((data) => {
-     if(cmd.output) 
+      if(cmd.output) 
         console.log(data.document);
+
+      console.log(data.document);
+
+      return;
+
       let result = findObject(data.document, cmd['type'], cmd['name']);
       let css = '';
+
+      if(!result) {
+        console.log('Could find the object that you passed: ');
+        return;
+      }
+
+      progressSpinner();
+
       result['children'].forEach((item) => {
         css = appendCSS(item, css);   
       });
-
+      console.log('// GENERATED BY FIGMA2CSS START')
       console.log(css);
+      console.log('// GENERATED BY FIGMA2CSS END')
 
       // fs.writeFile(cmd['file'] || "./styles.css", css, function(err) {
       //   if(err) 
