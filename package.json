@@ -3,16 +3,15 @@
   "version": "0.1.5",
   "description": "converts figma designs in to react components",
   "preferGlobal": true,
-  "bin": "./figma2css.js",
   "main": "figma2css.js",
+  "bin": "figma2css.js",
   "repository": {
     "type": "git",
     "url": "git://github.com/0000marcell/figma2css.git"
   },
   "dependencies": {
-    "clui": "^0.3.6",
     "commander": "^2.15.1",
-    "node-fetch": "^2.1.2"
+    "readstdin": "^1.0.0"
   },
   "devDependencies": {},
   "scripts": {
