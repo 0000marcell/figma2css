@@ -4,10 +4,37 @@ const program = require('commander');
 const readstdin = require('readstdin');
 
 const validProperties = {
-  'fontFamily': { name: 'font-family', unit: '' },
-  'fontWeight': { name: 'font-weight', unit: '' },
-  'fontSize': { name: 'font-size', unit: 'px' },
-  'textCase': { name: 'text-transform', unit: '' }
+  'fontFamily': function(item, type){ 
+    if(type === 'prop') {
+      return 'font-family';
+    } else if(type === 'value') {
+      return item.style['fontFamily'];
+    }
+  },
+  'fontWeight': function(item, type){ 
+    if(type === 'prop') {
+      return 'font-weight';
+    } else if(type === 'value') {
+      return item.style['fontWeight'];
+    } 
+  },
+  'fontSize': function(item, type){ 
+    if(type === 'prop') {
+      return 'font-size';
+    } else if(type === 'value') {
+      return item.style['fontSize'] + 'px';
+    }
+  },
+  'textCase': function(item, type){ 
+    if(type === 'prop') {
+      return 'text-transform';
+    } else if(type === 'value') {
+      if(item.style['textCase'] === 'UPPER') {
+        return 'UPPERCASE';
+      } 
+      return item.style['textCase'];
+    }
+  }
 }
 
 /**
@@ -27,6 +54,45 @@ function formatColor(ocolor) {
   return result;
 }
 
+let styleTransformers = {
+  'TEXT': function(css, item) {
+    css += `${item.name} {\n`;
+    Object.keys(item.style).forEach((key) => {
+      if(validProperties[key]) {
+        let prop = validProperties[key](item, 'prop'),
+            value = validProperties[key](item, 'value');
+        css += `\t${prop}: ${value} !important;\n`;
+      }
+    });
+    css += `\tcolor: ${formatColor(item.fills[0].color)} !important;\n`
+    css += '}\n\n';
+    return css;
+  },
+  'VECTOR': function(css, item) {
+    // absoluteBoundingBox:
+    // { x: -5473, y: 46288, width: 223, height: 47.02142333984375 },
+    // constraints: { vertical: 'SCALE', horizontal: 'SCALE' },
+    // fills:
+    // [ { blendMode: 'NORMAL',
+    //     type: 'SOLID',
+    //     color:
+    //      { r: 0.0470588244497776,
+    //        g: 0.20000000298023224,
+    //        b: 0.43921568989753723,
+    //        a: 1 } } ],
+    css += `${item.name} {\n`;
+    css += `\twidth: ${item.absoluteBoundingBox.width}px !important;\n`;
+    css += `\theight: ${item.absoluteBoundingBox.height}px !important;\n`;
+    if(item.fills.length) {
+      css += `\tbackground-color: ${formatColor(item.fills[0].color)} !important;\n`
+    } else if(item.strokes.length) {
+      css += `\tborder: ${item.strokeWeight}px ${item.strokes[0].type} ${formatColor(item.strokes[0].color)};`
+    }
+    css += '}\n\n';
+    return css;
+  }
+}
+
 let classesList = [];
 
 /**
@@ -35,19 +101,11 @@ let classesList = [];
 * and styles
 */
 function appendCSS(item, css) {
-  if(item.type === 'TEXT') {
+  if(item.type === 'TEXT' || item.type === 'VECTOR') {
     if((item.name.match(/^\./) || item.name.match(/^\#/)) && 
       !classesList.find(elem => elem === item.name)){
       classesList.push(item.name);
-      css += `${item.name} {\n`;
-      Object.keys(item.style).forEach((key) => {
-        if(validProperties[key]) {
-          let prop = validProperties[key];
-          css += `\t${prop.name}: ${item.style[key]}${prop.unit} !important;\n`;
-        }
-      });
-      css += `\tcolor: ${formatColor(item.fills[0].color)} !important;\n`
-      css += '}\n\n';
+      css = styleTransformers[item.type](css, item);
     }
   } else {
     if(item.children) {
