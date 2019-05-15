@@ -8,25 +8,31 @@ const validProperties = {
     if(type === 'prop') {
       return 'font-family';
     } else if(type === 'value') {
-      return item
+      return item.style['fontFamily'];
     }
   },
   'fontWeight': function(item, type){ 
     if(type === 'prop') {
       return 'font-weight';
     } else if(type === 'value') {
+      return item.style['fontWeight'];
     } 
   },
   'fontSize': function(item, type){ 
     if(type === 'prop') {
       return 'font-size';
     } else if(type === 'value') {
+      return item.style['fontSize'] + 'px';
     }
   },
   'textCase': function(item, type){ 
     if(type === 'prop') {
       return 'text-transform';
     } else if(type === 'value') {
+      if(item.style['textCase'] === 'UPPER') {
+        return 'UPPERCASE';
+      } 
+      return item.style['textCase'];
     }
   }
 }
