@@ -36,7 +36,7 @@ let classesList = [];
 */
 function appendCSS(item, css) {
   if(item.type === 'TEXT') {
-    if(item.name.match(/^\./) && 
+    if((item.name.match(/^\./) || item.name.match(/^\#/)) && 
       !classesList.find(elem => elem === item.name)){
       classesList.push(item.name);
       css += `${item.name} {\n`;
