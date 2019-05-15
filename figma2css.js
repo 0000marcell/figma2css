@@ -69,23 +69,26 @@ let styleTransformers = {
     return css;
   },
   'VECTOR': function(css, item) {
-    // absoluteBoundingBox:
-    // { x: -5473, y: 46288, width: 223, height: 47.02142333984375 },
-    // constraints: { vertical: 'SCALE', horizontal: 'SCALE' },
-    // fills:
-    // [ { blendMode: 'NORMAL',
-    //     type: 'SOLID',
-    //     color:
-    //      { r: 0.0470588244497776,
-    //        g: 0.20000000298023224,
-    //        b: 0.43921568989753723,
-    //        a: 1 } } ],
     css += `${item.name} {\n`;
     css += `\twidth: ${item.absoluteBoundingBox.width}px !important;\n`;
     css += `\theight: ${item.absoluteBoundingBox.height}px !important;\n`;
     if(item.fills.length) {
       css += `\tbackground-color: ${formatColor(item.fills[0].color)} !important;\n`
-    } else if(item.strokes.length) {
+    }
+    if(item.strokes.length) {
+      css += `\tborder: ${item.strokeWeight}px ${item.strokes[0].type} ${formatColor(item.strokes[0].color)};`
+    }
+    css += '}\n\n';
+    return css;
+  },
+  'RECTANGLE': function(css, item) {
+    css += `${item.name} {\n`;
+    css += `\twidth: ${item.absoluteBoundingBox.width}px !important;\n`;
+    css += `\theight: ${item.absoluteBoundingBox.height}px !important;\n`;
+    if(item.fills.length) {
+      css += `\tbackground-color: ${formatColor(item.fills[0].color)} !important;\n`
+    }
+    if(item.strokes.length) {
       css += `\tborder: ${item.strokeWeight}px ${item.strokes[0].type} ${formatColor(item.strokes[0].color)};`
     }
     css += '}\n\n';
@@ -101,7 +104,7 @@ let classesList = [];
 * and styles
 */
 function appendCSS(item, css) {
-  if(item.type === 'TEXT' || item.type === 'VECTOR') {
+  if(item.type === 'TEXT' || item.type === 'VECTOR' || item.type === 'RECTANGLE') {
     if((item.name.match(/^\./) || item.name.match(/^\#/)) && 
       !classesList.find(elem => elem === item.name)){
       classesList.push(item.name);
