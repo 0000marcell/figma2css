@@ -106,8 +106,8 @@ let classesList = [];
 function appendCSS(item, css) {
   if(item.type === 'TEXT' || item.type === 'VECTOR' || item.type === 'RECTANGLE') {
     if((item.name.match(/^\./) || item.name.match(/^\#/)) && 
-      !classesList.find(elem => elem === item.name)){
-      classesList.push(item.name);
+      !classesList.find(elem => elem === item.name+item.type)){
+      classesList.push(item.name+item.type);
       css = styleTransformers[item.type](css, item);
     }
   } else {
