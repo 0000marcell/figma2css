@@ -76,7 +76,7 @@ let styleTransformers = {
       css += `\tbackground-color: ${formatColor(item.fills[0].color)} !important;\n`
     }
     if(item.strokes.length) {
-      css += `\tborder: ${item.strokeWeight}px ${item.strokes[0].type} ${formatColor(item.strokes[0].color)};`
+      css += `\tborder: ${item.strokeWeight}px ${item.strokes[0].type} ${formatColor(item.strokes[0].color)} !important;`
     }
     css += '}\n\n';
     return css;
@@ -89,7 +89,7 @@ let styleTransformers = {
       css += `\tbackground-color: ${formatColor(item.fills[0].color)} !important;\n`
     }
     if(item.strokes.length) {
-      css += `\tborder: ${item.strokeWeight}px ${item.strokes[0].type} ${formatColor(item.strokes[0].color)};`
+      css += `\tborder: ${item.strokeWeight}px ${item.strokes[0].type} ${formatColor(item.strokes[0].color)} !important;`
     }
     css += '}\n\n';
     return css;
