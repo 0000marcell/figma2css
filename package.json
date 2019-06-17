@@ -10,7 +10,7 @@
     "url": "git://github.com/0000marcell/figma2css.git"
   },
   "dependencies": {
-    "commander": "^2.15.1",
+    "commander": "^2.20.0",
     "readstdin": "^1.0.0"
   },
   "devDependencies": {},

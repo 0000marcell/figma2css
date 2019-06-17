@@ -2,6 +2,8 @@
 
 const program = require('commander');
 const readstdin = require('readstdin');
+let ADD_WIDTH = false,
+    ADD_HEIGHT = false;
 
 const validProperties = {
   'fontFamily': function(item, type){ 
@@ -70,8 +72,10 @@ let styleTransformers = {
   },
   'VECTOR': function(css, item) {
     css += `${item.name} {\n`;
-    css += `\twidth: ${item.absoluteBoundingBox.width}px !important;\n`;
-    css += `\theight: ${item.absoluteBoundingBox.height}px !important;\n`;
+    if(ADD_WIDTH) 
+      css += `\twidth: ${item.absoluteBoundingBox.width}px !important;\n`;
+    if(ADD_HEIGHT)
+      css += `\theight: ${item.absoluteBoundingBox.height}px !important;\n`;
     if(item.fills.length) {
       css += `\tbackground-color: ${formatColor(item.fills[0].color)} !important;\n`
     }
@@ -83,8 +87,11 @@ let styleTransformers = {
   },
   'RECTANGLE': function(css, item) {
     css += `${item.name} {\n`;
-    css += `\twidth: ${item.absoluteBoundingBox.width}px !important;\n`;
-    css += `\theight: ${item.absoluteBoundingBox.height}px !important;\n`;
+
+    if(ADD_WIDTH) 
+      css += `\twidth: ${item.absoluteBoundingBox.width}px !important;\n`;
+    if(ADD_HEIGHT)
+      css += `\theight: ${item.absoluteBoundingBox.height}px !important;\n`;
     if(item.fills.length) {
       css += `\tbackground-color: ${formatColor(item.fills[0].color)} !important;\n`
     }
@@ -122,11 +129,12 @@ function appendCSS(item, css) {
 
 program
   .description('transform figmadata in to css')
-  .option('-nw, --no-width <type>', 'do not add width')
-  .option('-nh, --no-height <name>', 'do not add height')
+  .option('-w, --width', 'do not add width')
+  .option('-h, --height', 'do not add height')
   .action(async function(cmd) {
-    console.log('testing');
     let data = null;
+    ADD_WIDTH = cmd['width'];
+    ADD_HEIGHT = cmd['height'];
     data = await readstdin(); 
     data = JSON.parse(data)['document'];
     if(!data) {
@@ -145,7 +153,6 @@ program
     }
 
     if(!css) {
-      console.log(css);
       return;
     }
 
