@@ -3,4 +3,4 @@
 ID=YZkG7swHVcXXJ6gA5PfLuNzw
 DATA=$(figmafetch -i $ID -t $FIGMA_TOKEN)
 ELEMENT=$(echo $DATA | figmafind -t COMPONENT -n Pedido-VTEX)
-echo $ELEMENT | figma2css -i
+echo $ELEMENT | figma2css
