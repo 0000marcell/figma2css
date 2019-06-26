@@ -17,6 +17,12 @@ const validProperties = {
     if(type === 'prop') {
       return 'font-weight';
     } else if(type === 'value') {
+      // if the font has postscript use it instead
+      if(item.style['fontPostScriptName']) {
+        let weight = item.style['fontPostScriptName'].split('-')[1];
+        if(weight)
+          return weight;
+      }
       return item.style['fontWeight'];
     } 
   },
@@ -32,7 +38,9 @@ const validProperties = {
       return 'text-transform';
     } else if(type === 'value') {
       if(item.style['textCase'] === 'UPPER') {
-        return 'UPPERCASE';
+        return 'uppercase';
+      } else if(item.style['textCase'] === 'LOWER'){
+        return 'lowercase';
       } 
       return item.style['textCase'];
     }
@@ -56,6 +64,46 @@ function formatColor(ocolor) {
   return result;
 }
 
+/**
+ * parse options inside the name of the object 
+ * ex: .button[W-H]; this would capture height and width
+ * of the element
+*/
+function parseOptions(item) {
+  if(item.name.match(/\[(.*?)\]/)) {
+    let options = item.name.match(/\[(.*?)\]/)[1],
+      obj = {};
+    options.split('-').forEach((opts) => {
+      obj[opts] = true; 
+    }); 
+    return obj;
+  }
+  return {};
+}
+
+/**
+ * this function is used in all vector transformations
+ */
+function transformVector(css, item) {
+  let opts = parseOptions(item); 
+  css += `${item.name} {\n`;
+  if(ADD_WIDTH || opts['W']) 
+    css += `\twidth: ${item.absoluteBoundingBox.width}px !important;\n`;
+  if(ADD_HEIGHT || opts['H'])
+    css += `\theight: ${item.absoluteBoundingBox.height}px !important;\n`;
+  if(item.fills.length) {
+    css += `\tbackground-color: ${formatColor(item.fills[0].color)} !important;\n`;
+  }
+  if(item.strokes.length) {
+    css += `\tborder: ${item.strokeWeight}px ${item.strokes[0].type} ${formatColor(item.strokes[0].color)} !important;\n`;
+  }
+  if(item.cornerRadius) {
+    css += `\tborder-radius: ${item.cornerRadius}px !important;\n`;
+  }
+  css += '}\n\n';
+  return css;
+}
+
 let styleTransformers = {
   'TEXT': function(css, item) {
     css += `${item.name} {\n`;
@@ -71,35 +119,10 @@ let styleTransformers = {
     return css;
   },
   'VECTOR': function(css, item) {
-    css += `${item.name} {\n`;
-    if(ADD_WIDTH) 
-      css += `\twidth: ${item.absoluteBoundingBox.width}px !important;\n`;
-    if(ADD_HEIGHT)
-      css += `\theight: ${item.absoluteBoundingBox.height}px !important;\n`;
-    if(item.fills.length) {
-      css += `\tbackground-color: ${formatColor(item.fills[0].color)} !important;\n`
-    }
-    if(item.strokes.length) {
-      css += `\tborder: ${item.strokeWeight}px ${item.strokes[0].type} ${formatColor(item.strokes[0].color)} !important;`
-    }
-    css += '}\n\n';
-    return css;
+    return transformVector(css, item); 
   },
   'RECTANGLE': function(css, item) {
-    css += `${item.name} {\n`;
-
-    if(ADD_WIDTH) 
-      css += `\twidth: ${item.absoluteBoundingBox.width}px !important;\n`;
-    if(ADD_HEIGHT)
-      css += `\theight: ${item.absoluteBoundingBox.height}px !important;\n`;
-    if(item.fills.length) {
-      css += `\tbackground-color: ${formatColor(item.fills[0].color)} !important;\n`
-    }
-    if(item.strokes.length) {
-      css += `\tborder: ${item.strokeWeight}px ${item.strokes[0].type} ${formatColor(item.strokes[0].color)} !important;`
-    }
-    css += '}\n\n';
-    return css;
+    return transformVector(css, item); 
   }
 }
 
