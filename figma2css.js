@@ -85,7 +85,6 @@ function parseOptions(item) {
  * this function is used in all vector transformations
  */
 function transformVector(css, item) {
-  console.log('item: ', item);
   let opts = parseOptions(item); 
   css += `${item.name} {\n`;
   if(ADD_WIDTH || opts['W']) 
