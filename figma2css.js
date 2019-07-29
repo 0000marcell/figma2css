@@ -6,6 +6,13 @@ let ADD_WIDTH = false,
     ADD_HEIGHT = false;
 
 const validProperties = {
+  'textDecoration': function(item, type){ 
+    if(type === 'prop') {
+      return 'text-decoration';
+    } else if(type === 'value') {
+      return item.style['textDecoration'].toLowerCase();
+    }
+  },
   'fontFamily': function(item, type){ 
     if(type === 'prop') {
       return 'font-family';
