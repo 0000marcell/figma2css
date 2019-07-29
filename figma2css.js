@@ -73,6 +73,8 @@ function parseOptions(item) {
   if(item.name.match(/\[(.*?)\]/)) {
     let options = item.name.match(/\[(.*?)\]/)[1],
       obj = {};
+
+    console.log('optoins: ', options);
     options.split('-').forEach((opts) => {
       obj[opts] = true; 
     }); 
@@ -86,7 +88,7 @@ function parseOptions(item) {
  */
 function transformVector(css, item) {
   let opts = parseOptions(item); 
-  css += `${item.name} {\n`;
+  css += `${item.name.split('[')[0]} {\n`;
   if(ADD_WIDTH || opts['W']) 
     css += `\twidth: ${item.absoluteBoundingBox.width}px !important;\n`;
   if(ADD_HEIGHT || opts['H'])
