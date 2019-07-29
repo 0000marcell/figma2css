@@ -83,7 +83,6 @@ function parseOptions(item) {
     let options = item.name.match(/\[(.*?)\]/)[1],
       obj = {};
 
-    console.log('optoins: ', options);
     options.split('-').forEach((opts) => {
       obj[opts] = true; 
     }); 
@@ -161,12 +160,7 @@ function appendCSS(item, css) {
   return css;
 }
 
-program
-  .description('version')
-  .option('-v, --version', 'version ')
-  .action(async function(cmd) {
-    console.log(pkg.version);
-  });
+program.version(pkg.version);
 
 program
   .description('transform figmadata in to css')
