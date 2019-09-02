@@ -50,6 +50,8 @@ const validProperties = {
         return 'uppercase';
       } else if(item.style['textCase'] === 'LOWER'){
         return 'lowercase';
+      } else if(item.style['textCase'] === 'TITLE') {
+        return 'capitalize';
       } 
       return item.style['textCase'];
     }
