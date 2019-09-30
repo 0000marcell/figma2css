@@ -3,60 +3,10 @@
 const program = require('commander');
 const readstdin = require('readstdin');
 const pkg = require('./package.json');
+const validProperties = require('./valid-properties');
 
 let ADD_WIDTH = false,
     ADD_HEIGHT = false;
-
-const validProperties = {
-  'textDecoration': function(item, type){ 
-    if(type === 'prop') {
-      return 'text-decoration';
-    } else if(type === 'value') {
-      return item.style['textDecoration'].toLowerCase();
-    }
-  },
-  'fontFamily': function(item, type){ 
-    if(type === 'prop') {
-      return 'font-family';
-    } else if(type === 'value') {
-      return item.style['fontFamily'];
-    }
-  },
-  'fontWeight': function(item, type){ 
-    if(type === 'prop') {
-      return 'font-weight';
-    } else if(type === 'value') {
-      // if the font has postscript use it instead
-      if(item.style['fontPostScriptName']) {
-        let weight = item.style['fontPostScriptName'].split('-')[1];
-        if(weight)
-          return weight;
-      }
-      return item.style['fontWeight'];
-    } 
-  },
-  'fontSize': function(item, type){ 
-    if(type === 'prop') {
-      return 'font-size';
-    } else if(type === 'value') {
-      return item.style['fontSize'] + 'px';
-    }
-  },
-  'textCase': function(item, type){ 
-    if(type === 'prop') {
-      return 'text-transform';
-    } else if(type === 'value') {
-      if(item.style['textCase'] === 'UPPER') {
-        return 'uppercase';
-      } else if(item.style['textCase'] === 'LOWER'){
-        return 'lowercase';
-      } else if(item.style['textCase'] === 'TITLE') {
-        return 'capitalize';
-      } 
-      return item.style['textCase'];
-    }
-  }
-}
 
 /**
 * format color from {r: 0, g: 0, b: 0} 
