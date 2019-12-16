@@ -1,7 +1,7 @@
 {
   "name": "figma2css",
-  "version": "0.1.8",
-  "description": "converts figma designs in to react components",
+  "version": "1.0.0",
+  "description": "converts figma designs in to css",
   "preferGlobal": true,
   "main": "figma2css.js",
   "bin": "figma2css.js",
