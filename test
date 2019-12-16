@@ -1,7 +1,0 @@
-#!/usr/bin/bash
-
-ID=YZkG7swHVcXXJ6gA5PfLuNzw
-DATA=$(figmafetch -i $ID -t $FIGMA_TOKEN)
-echo $DATA > DATA
-ELEMENT=$(echo $DATA | figmafind -t COMPONENT -n Pedido-VTEX)
-echo $ELEMENT | figma2css
